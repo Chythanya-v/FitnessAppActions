@@ -22,33 +22,58 @@ public class FitStatsSlice extends FitSlice{
     Context context;
     Uri sliceUri;
     FitRepository fitRepo;
+    FitActivity.Type activityType;
+    LiveData<List<FitActivity>> lastActivities;
+    Observer<List<FitActivity>> observer;
 
 
-    public FitStatsSlice(Uri uri, Context context, Uri sliceUri, FitRepository fitRepo) {
-        super(uri, context);
+    public FitStatsSlice(Context context, Uri sliceUri, FitRepository fitRepo) {
+        super(sliceUri, context);
         this.context = context;
         this.sliceUri = sliceUri;
         this.fitRepo = fitRepo;
+        /**
+         * Get the activity type from the uri and map it to our enum types.
+         */
+        activityType = FitActivity.Type.valueOf(sliceUri.getQueryParameter("exerciseType"));
+
+        /**
+         * Observer that will refresh the slice once data is available
+         */
+ observer = new Observer<List<FitActivity>>() {
+    @Override
+    public void onChanged(List<FitActivity> fitActivities) {
+if(fitActivities !=null){
+    refresh();
+}
     }
+};
 
-    /**
-     * Get the activity type from the uri and map it to our enum types.
-     */
-    FitActivity.Type activityType = FitActivity.find(sliceUri.getQueryParameter("exerciseType"));
+        /**
+         * Create and observe the last activities LiveData.
+         */
+        lastActivities = fitRepo.getLastActivities(5,activityType);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                lastActivities.observeForever(observer);
+            }
+        });
 
-    /**
-     * Create and observe the last activities LiveData.
-     */
-    LiveData<List<FitActivity>> lastActivities = fitRepo.getLastActivities(5,activityType);
-
-
+    }
 
     @Override
     Slice getSlice() {
         List<FitActivity> activity = lastActivities.getValue();
         if (activity != null){
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+lastActivities.removeObserver(observer);
+                }
+            });
            return createStatsSlice(activity);
-        }
+        }else
         return createLoadingSlice();
     }
     /**
@@ -63,30 +88,31 @@ public class FitStatsSlice extends FitSlice{
      */
     private Slice createStatsSlice(List<FitActivity> activity) {
         String subTitle;
+
         if (activity.isEmpty())
             subTitle = context.getString(R.string.slice_stats_subtitle_no_data);
             else
                 subTitle = context.getString(R.string.slice_stats_subtitle);
+            GridRowBuilder gridRowBuilder = new GridRowBuilder();
+            //fer each activity,build a cell with the fit activity data
+            for (FitActivity fitActivity : activity){
+                String distKm =  String.format("%.2f", fitActivity.distanceMeters / 1000);
+                String distance = context.getString(R.string.slice_stats_distance, distKm);
+                Calendar cal = Calendar.getInstance();
+                cal.setTimeInMillis(fitActivity.date);
+             gridRowBuilder.addCell(new GridRowBuilder.CellBuilder().addText(distance)
+             .addTitleText(cal.getDisplayName(Calendar.DAY_OF_WEEK,Calendar.LONG, Locale.getDefault())));
+            }
 
-        return new ListBuilder(context,sliceUri,ListBuilder.INFINITY).setHeader(new ListBuilder.HeaderBuilder()
+        ListBuilder builder = new ListBuilder(context,sliceUri,ListBuilder.INFINITY).setHeader(new ListBuilder.HeaderBuilder()
                .setTitle(context.getString(R.string.slice_stats_title, activityType.name()))
         .setSubtitle(subTitle))
-                .addAction(createActivityAction()).build();
+                .addGridRow(gridRowBuilder)
+                .addAction(createActivityAction());
 
-    }
+        return builder.build();
 
-    /**
-     * Given a Slice cell, setup the content to display the given FitActivity.
-     */
-    void cellBuilder(FitActivity activity){
-        String distKm =  String.format("%.2f", activity.distanceMeters / 1000);
-       String distance = context.getString(R.string.slice_stats_distance, distKm);
-        Calendar cal = Calendar.getInstance();
-       long date = cal.getTimeInMillis();
-       date = activity.date;
-        GridRowBuilder.CellBuilder cb = new GridRowBuilder.CellBuilder()
-                .addText(distance)
-                .addTitleText(cal.getDisplayName(Calendar.DAY_OF_WEEK,Calendar.LONG, Locale.getDefault()));
+
     }
 
 }

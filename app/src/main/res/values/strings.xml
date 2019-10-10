@@ -11,7 +11,7 @@
     <string name="slice_stats_subtitle">Keep going!</string>
     <string name="slice_stats_subtitle_no_data">No activity found yet. Start one now!</string>
 
-    <string name="start_activity_title">Start %1$s in…</string>
+    <string name="start_activity_title">Start Activity in…</string>
 
     <string name="stats_title">Way to GO!</string>
     <string name="stats_total_distance">%1$d\nMeters</string>

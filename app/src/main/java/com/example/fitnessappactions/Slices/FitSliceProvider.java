@@ -1,5 +1,6 @@
 package com.example.fitnessappactions.Slices;
 
+import android.app.PendingIntent;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -7,16 +8,17 @@ import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.drawable.IconCompat;
 import androidx.slice.Slice;
 import androidx.slice.SliceProvider;
 import androidx.slice.builders.ListBuilder;
-import androidx.slice.builders.ListBuilder.RowBuilder;
 import androidx.slice.builders.SliceAction;
 
+import com.example.fitnessappactions.MainActivity;
 import com.example.fitnessappactions.Model.FitRepository;
+import com.example.fitnessappactions.R;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class FitSliceProvider extends SliceProvider {
@@ -30,8 +32,8 @@ public class FitSliceProvider extends SliceProvider {
 
        FitRepository fitRepository = FitRepository.getInstance(getContext());
 
-       if (sliceUri.getPath() != null){
-         return new FitStatsSlice(sliceUri,getContext(),sliceUri,fitRepository );
+       if (sliceUri.getPath().equals("/Stats") ){
+         return new FitStatsSlice(getContext(),sliceUri,fitRepository );
        }
        else
            return new FitSlice.fitSliceDefault(sliceUri,getContext());
@@ -71,10 +73,7 @@ public class FitSliceProvider extends SliceProvider {
      * Construct the Slice and bind data if available.
      */
     public Slice onBindSlice(Uri sliceUri) {
-        Context context = getContext();
-        Object o;
-        SliceAction activityAction = createActivityAction();
-// When a new request is send to the SliceProvider of this app, this method is called
+        // When a new request is send to the SliceProvider of this app, this method is called
         // with the given slice URI.
         // Here you could directly handle the uri and create a new slice. But in order to make
         // the slice dynamic and better structured, we use the FitSlice class.
@@ -86,47 +85,21 @@ public class FitSliceProvider extends SliceProvider {
        else
            return (Slice)lastSlices.get(sliceUri);
 
-        /*
-        if (context == null || activityAction == null) {
-            return null;
         }
-        if ("/".equals(sliceUri.getPath())) {
-            // Path recognized. Customize the Slice using the androidx.slice.builders API.
-            // Note: ANRs and strict mode is enforced here so don't do any heavy operations.
-            // Only bind data that is currently available in memory.
-            return new ListBuilder(getContext(), sliceUri, ListBuilder.INFINITY)
-                    .addRow(
-                            new RowBuilder()
-                                    .setTitle("URI found.")
-                                    .setPrimaryAction(activityAction)
-                    )
-                    .build();
-        } else {
-            // Error: Path not found.
-            return new ListBuilder(getContext(), sliceUri, ListBuilder.INFINITY)
-                    .addRow(
-                            new RowBuilder()
-                                    .setTitle("URI not found.")
-                                    .setPrimaryAction(activityAction)
-                    )
-                    .build();
-        }
-        */
-    }
 
     private SliceAction createActivityAction() {
-        return null;
+    //    return null;
         //Instead of returning null, you should create a SliceAction. Here is an example:
-        /*
+
         return SliceAction.create(
             PendingIntent.getActivity(
-                getContext(), 0, new Intent(getContext(), MyActivityClass.class), 0
+                getContext(), 0, new Intent(getContext(), MainActivity.class), 0
             ),
             IconCompat.createWithResource(getContext(), R.drawable.ic_launcher_foreground),
             ListBuilder.ICON_IMAGE,
             "Open App"
         );
-        */
+
     }
 
     /**

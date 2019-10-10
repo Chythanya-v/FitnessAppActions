@@ -1,17 +1,24 @@
 package com.example.fitnessappactions.Model;
 
+import androidx.annotation.NonNull;
 import androidx.constraintlayout.solver.SolverVariable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
+import androidx.room.TypeConverter;
 
 import com.example.fitnessappactions.R;
 
 
 //database table to hold the fitness activities
 @Entity(tableName = "fitness_activities",indices = {@Index("id")})
+//entity is a pojo class for database
 public class FitActivity {
+    public FitActivity() {
+        //required empty constructor
+    }
+
     public FitActivity(String id, long date, Type type, double distanceMeters, long durationMs) {
         this.id = id;
         this.date = date;
@@ -22,8 +29,9 @@ public class FitActivity {
 
     //column id is the primary key
     @PrimaryKey
+    @NonNull
     @ColumnInfo(name="id")
-    String id;
+   public String id;
     //column for the date
     @ColumnInfo(name="date")
    public long date;
@@ -40,6 +48,7 @@ public class FitActivity {
 
     //column for duration
     @ColumnInfo(name="durationMs")
+    public
     long durationMs;
 
     //enum consists of the types of activities

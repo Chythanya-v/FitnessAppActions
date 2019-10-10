@@ -34,7 +34,7 @@ public abstract class FitSlice {
     /**
      * Main thread handler to execute tasks that requires Android Main Thread
      */
-    Handler handler = new Handler(Looper.getMainLooper());
+   protected Handler handler = new Handler(Looper.getMainLooper());
 
     /**
      * @return the specific slice implementation to be used by SliceProvider
@@ -55,7 +55,8 @@ context.getContentResolver().notifyChange(sliceUri,null);
     SliceAction createActivityAction(){
 Intent i = new Intent(context, MainActivity.class);
 return SliceAction.create(
-        PendingIntent.getActivity(context,0,i,0), IconCompat.createWithResource(context, R.mipmap.ic_launcher),
+        PendingIntent.getActivity(context,0,i,0),
+        IconCompat.createWithResource(context, R.mipmap.ic_launcher),
         ListBuilder.SMALL_IMAGE,context.getString(R.string.slice_enter_app_hint));
     }
     /**
@@ -72,6 +73,8 @@ return SliceAction.create(
             return new ListBuilder(context,sliceUri,ListBuilder.INFINITY)
                     .addRow(new ListBuilder.RowBuilder().setPrimaryAction(createActivityAction())
                             .setTitle(context.getString(R.string.slice_uri_not_found))).build();           }
+        // Mark the slice as error type slice.
+
         }
     }
 

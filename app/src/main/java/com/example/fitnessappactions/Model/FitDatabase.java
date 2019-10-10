@@ -7,6 +7,7 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverter;
+import androidx.room.TypeConverters;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 
 @Database(entities = {FitActivity.class}, version = 1)
+@TypeConverters(FitDatabase.Converters.class)
 public abstract class FitDatabase extends RoomDatabase {
     public abstract FitActivityDao fitActivityDao();
 
@@ -32,8 +34,9 @@ public abstract class FitDatabase extends RoomDatabase {
         if (INSTANCE == null) {
             synchronized (FitDatabase.class) {
                 if (INSTANCE == null) {
-                    INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
+                    INSTANCE = Room.databaseBuilder(context,
                             FitDatabase.class, "fitness_database")
+                           // .fallbackToDestructiveMigration()
                             .addCallback(new Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {
@@ -57,13 +60,13 @@ public abstract class FitDatabase extends RoomDatabase {
                 FitActivityDao fitActivityDao = getInstance(context).fitActivityDao();
                 long currentTime = System.currentTimeMillis();
                 int i =0;
-                while(i<=10) {
+                while(i<=5) {
                     fitActivityDao.insert(new FitActivity(
                             String.valueOf(Math.random()),
-                            currentTime,
+                            (TimeUnit.DAYS.toMillis(currentTime)),
                             FitActivity.Type.RUNNING,
-                            (250.00) * 1000,
-                            currentTime
+                            250.00,
+                            TimeUnit.MINUTES.toMillis(50000)
                     ));
                     i++;
                 }
@@ -74,20 +77,20 @@ public abstract class FitDatabase extends RoomDatabase {
     /**
      * Converter class for the DB to convert from/to enum FitActivity.Type
      */
-    class Converters {
+   public static class Converters {
 
         @TypeConverter
         //takes the enum type and converts it into integer.
         //values.ordinal() returns the ordinal number of the enum value which is an integer
-       int fromType(FitActivity.Type value) {
+       public int fromType(FitActivity.Type value) {
             return value.ordinal();
         }
 
         @TypeConverter
-        FitActivity.Type toType(int value){
+       public FitActivity.Type toType(int value){
             //get the array of the activities
                      FitActivity.Type[] activities =   FitActivity.Type.values();
-          //check if the integer passed is less than the size of array, if it less then pass the enum value o that integer
+          //check if the integer passed is less than the size of array, if it less then pass the enum value of that integer
          if (value < activities.length)
              return activities[value];
          //else pass unknown

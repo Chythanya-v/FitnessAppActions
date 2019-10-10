@@ -45,32 +45,32 @@ public class FitRepository {
     }
 
 
-    FitActivity fitActivity = new FitActivity(String.valueOf(Math.random()), System.currentTimeMillis(),
-            FitActivity.Type.RUNNING, 0.0, 0);
 
-    /**
+
+    /**************************************remarks************************************************
      * LiveData containing the active tracker or null if none.
-     */
-    private MutableLiveData<Tracker> currentTracker() {
-        return new MutableLiveData<>();
-    }
+*/
+    //initialize the current tracker variable
+    MutableLiveData<Tracker> currentTracker = new MutableLiveData<>();
+
+
 
     /**
      * Keep the transformation as variable to avoid creating a new one
      * each time getOnGoingActivity is called.
-     */
-    private LiveData<FitActivity> _onGoingActivity() {
-        MutableLiveData<FitActivity> Activity = new MutableLiveData<FitActivity>();
-        Transformations.switchMap(Activity, currentTracker());
-    }
+*/
+    private LiveData<FitActivity> _onGoingActivity = new MutableLiveData<>();
+
+
 
     /**
      * Get the last activities
      *
      * @param count maximum number of activities to return
      * @return a live data with the last FitActivity
-     */
-    LiveData<List<FitActivity>> getLastActivities(int count, FitActivity.Type type) {
+     * */
+
+  public  LiveData<List<FitActivity>> getLastActivities(int count, FitActivity.Type type) {
         FitActivityDao dao = fitdb.fitActivityDao();
         if (type != null) {
             return dao.getAllOfType(type, count);
@@ -78,13 +78,14 @@ public class FitRepository {
             return dao.getAll(count);
 
     }
+    /*****************************************************************************
 
     /**
      * Get the current users stats
      *
      * @return a live data with the latest FitStats
      */
-    LiveData<FitStats> getStats() {
+    public LiveData<FitStats> getStats() {
         return fitdb.fitActivityDao().getStats();
     }
 
@@ -93,38 +94,48 @@ public class FitRepository {
      *
      * @return a live data that tracks the ongoing activity if any.
      */
-    LiveData<FitActivity> getOnGoingActivity() {
-        return _onGoingActivity();
+   public LiveData<FitActivity> getOnGoingActivity() {
+        return _onGoingActivity;
+        //return null;
     }
 
-    /**
+    /***********************************************************************
      * Start a new activity.
      * <p>
      * This method will stop any previous activity and create a new one.
      *
-     * @see getOnGoingActivity
-     * @see stopActivity
-     */
-    startActivity() {
+     * @seegetOnGoingActivity
+     * @seestopActivity
+*/
+  public void startActivity() {
         stopActivity();
-        currentTracker().v = new Tracker();
+        currentTracker.setValue(new Tracker());
     }
 
-    /**
+
+    /****************************remarks*****************************
      * Stop the ongoing activity if any and store the result.
      * <p>
      * Note: the storing will be performed async.
-     */
-    stopActivity() {
-        currentTracker.value ?.let {
-            tracker ->
-                    currentTracker.value = null;
-            ioExecutor.execute {
-                tracker.stop()
-                fitdb.fitActivityDao().insert(tracker.value)
-            }
-        }
-    }
+*/
+  public void stopActivity() {
+
+      if (currentTracker.getValue() != null) {
+          currentTracker.setValue(null);
+          final Tracker tracker = new Tracker();
+
+          ioExecutor.execute(new Runnable() {
+              @Override
+              public void run() {
+                  tracker.stop();
+                  fitdb.fitActivityDao().insert(tracker.getValue());
+
+              }
+          });
+
+      }
+  }
+     //***************************************************************
 
 
     /**
@@ -134,14 +145,16 @@ public class FitRepository {
      * stats and notifying observers.
      */
     public class Tracker extends MutableLiveData<FitActivity> {
-
+        FitActivity fitActivity = new FitActivity(String.valueOf(Math.random()), System.currentTimeMillis(),
+               FitActivity.Type.RUNNING, 0.0, 0);
+        /**
+         * Method that will run every second while isRunning is true,
+         * updating the FitActivity and notifying the observers of the LiveData.
+         */
         private boolean isrunning = true;
         public Runnable runnable = new Runnable() {
 
-            /**
-             * Method that will run every second while isRunning is true,
-             * updating the FitActivity and notifying the observers of the LiveData.
-             */
+
             @Override
             public void run() {
                 fitActivity.durationMs = System.currentTimeMillis() - fitActivity.date;

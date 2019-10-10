@@ -10,54 +10,43 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
 
-import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.lifecycle.Observer;
-
 import com.example.fitnessappactions.MainActivity;
 import com.example.fitnessappactions.Model.FitActivity;
 import com.example.fitnessappactions.Model.FitRepository;
 import com.example.fitnessappactions.R;
 
-
+/**
+ * Foreground Android Service that starts an activity and keep tracks of the status showing
+ * a notification.
+ */
 public class FitTrackingService extends Service {
-
-    /*
-    Create an instance for the fitRepository
-     */
-    private FitRepository getFitRepository()  {
-       return FitRepository.getInstance(this);
+    public FitTrackingService() {
+        //empty constructor
     }
 
-    /**
-     * Create a notification builder that will be used to create and update the stats notification
-     */
-    private NotificationCompat.Builder  notificationBuilder()  {
+    private int ONGOING_NOTIFICATION_ID = 999;
 
-        PendingIntent p = PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),0);
-       return new NotificationCompat.Builder(this, "TrackingChannel")
-                .setContentTitle(getText(R.string.tracking_notification_title))
-                .setSmallIcon(R.drawable.ic_run)
-                .setContentIntent(p)
-                .setPriority(NotificationCompat.PRIORITY_MAX);
-    }
+    private String CHANNEL_ID = "TrackingChannel";
 
-    /**
+private FitRepository fitRepository = FitRepository.getInstance(this);
+    Notification.Builder notificationBuilder;
+
+      /**
      * Observer that will update the notification with the ongoing activity status.
      */
+Observer<FitActivity > trackingObserver = new Observer<FitActivity>() {
+        @Override
+        public void onChanged(FitActivity fitActivity) {
+            String km = String.format("%.2f", fitActivity.distanceMeters / 1000);
+          Notification  notificationTwo = notificationBuilder
+                  .setContentText(getString(R.string.stat_distance, km))
+                    .build();
+            NotificationManagerCompat.from(getApplicationContext()).notify(ONGOING_NOTIFICATION_ID,notificationTwo);
+        }
+    };
 
-    private Observer<FitActivity> trackingObserver(){
-        Observer<FitActivity> observer = new Observer<FitActivity>() {
-            @Override
-            public void onChanged(FitActivity fitActivity) {
-                String km = String.format("%.2f", fitActivity.distanceMeters / 1000);
-                Notification notification = notificationBuilder()
-                        .setContentText(getString(R.string.stat_distance, km))
-                        .build();
-            }
-
-        };
-        return observer;
-    }
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -67,20 +56,25 @@ public class FitTrackingService extends Service {
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
-        startForeground(999, notificationBuilder().build());
+        notificationBuilder = new Notification.Builder(this,CHANNEL_ID)
+                .setContentIntent(PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),0))
+                .setContentTitle("Keep Going!!")
+                .setSmallIcon(R.drawable.ic_run);
+
+        Notification notificationOne = notificationBuilder.build();
+
+        startForeground(ONGOING_NOTIFICATION_ID,notificationOne);
 
         // Start a new activity and attach the observer
-        getFitRepository().startActivity();
-        getFitRepository().getOngoingActivity().observeForever(trackingObserver();
-//        getFitRepository().getOnGoingActivity().observeForever(trackingObserver)
+        fitRepository.startActivity();
+        fitRepository.getOnGoingActivity().observeForever(trackingObserver);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // Stop the ongoing activity and detach the observer
-        getFitRepository().stopActivity();
-        getFitRepository().getOngoingActivity().removeObserver(trackingObserver());
+        fitRepository.stopActivity();
+        fitRepository.getOnGoingActivity().removeObserver(trackingObserver);
     }
 
     /**
@@ -90,10 +84,9 @@ public class FitTrackingService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             String name = getString(R.string.app_name);
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel("TrackingChannel", name, importance);
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
             NotificationManager notificationManager = (NotificationManager) getSystemService(
-                    Context.NOTIFICATION_SERVICE);
-
+                    NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
         }
     }
